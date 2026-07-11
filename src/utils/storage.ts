@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   AI_CONFIG: 'tomato_ai_config',
   POMODORO_ITEMS: 'tomato_pomodoro_items',
   ITEM_COMPLETIONS: 'tomato_item_completions',
+  ONBOARDING: 'tomato_onboarding',
 };
 
 function getStorage<T>(key: string, defaultValue: T): T {
@@ -255,4 +256,16 @@ export function getAllItemCompletions(): ItemCompletion[] {
 
 export function getItemCompletionsByTask(taskId: string): ItemCompletion[] {
   return getAllItemCompletions().filter(c => c.taskId === taskId);
+}
+
+export interface OnboardingState {
+  completed: boolean;
+}
+
+export function getOnboardingState(): OnboardingState {
+  return getStorage<OnboardingState>(STORAGE_KEYS.ONBOARDING, { completed: false });
+}
+
+export function setOnboardingCompleted(): void {
+  setStorage<OnboardingState>(STORAGE_KEYS.ONBOARDING, { completed: true });
 }

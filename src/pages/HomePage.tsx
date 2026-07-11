@@ -1,15 +1,43 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { ProgressBar } from '../components/common/ProgressBar';
 import { StatCard } from '../components/common/StatCard';
+import { OnboardingModal } from '../components/common/OnboardingModal';
+import { getOnboardingState, setOnboardingCompleted } from '../utils/storage';
 import { Plus, Target, Clock, Flame, TrendingUp, CheckCircle, PlayCircle, Trash2, Settings, BarChart3 } from 'lucide-react';
 
 export function HomePage() {
-  const { goals, removeGoal, getGoalProgress, getTotalPomodoroCount, focusRecords, loadData } = useAppStore();
+  const { goals, removeGoal, getGoalProgress, getTotalPomodoroCount, focusRecords, loadData, aiConfig } = useAppStore();
+  const navigate = useNavigate();
+  const [showOnboarding, setShowOnboarding] = useState(false);
   
   const totalFocusTime = focusRecords.reduce((acc, r) => acc + r.duration, 0);
+  
+  useEffect(() => {
+    loadData();
+    
+    const onboarding = getOnboardingState();
+    const hasConfiguredAPIKey = aiConfig.apiKey || 
+      (aiConfig.providerConfigs && 
+        Object.values(aiConfig.providerConfigs).some(pc => pc.apiKey));
+    
+    if (!onboarding.completed && !hasConfiguredAPIKey) {
+      setShowOnboarding(true);
+    }
+  }, [loadData, aiConfig]);
+  
+  const handleCloseOnboarding = () => {
+    setOnboardingCompleted();
+    setShowOnboarding(false);
+  };
+  
+  const handleGoToSettings = () => {
+    setOnboardingCompleted();
+    navigate('/settings');
+  };
   const hours = Math.floor(totalFocusTime / 3600);
   const minutes = Math.floor((totalFocusTime % 3600) / 60);
   
@@ -160,6 +188,13 @@ export function HomePage() {
           </section>
         )}
       </main>
+      
+      {showOnboarding && (
+        <OnboardingModal
+          onClose={handleCloseOnboarding}
+          onGoToSettings={handleGoToSettings}
+        />
+      )}
     </div>
   );
 }
