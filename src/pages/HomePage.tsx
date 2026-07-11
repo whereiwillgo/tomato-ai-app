@@ -6,7 +6,7 @@ import { Button } from '../components/common/Button';
 import { ProgressBar } from '../components/common/ProgressBar';
 import { StatCard } from '../components/common/StatCard';
 import { OnboardingModal } from '../components/common/OnboardingModal';
-import { getOnboardingState, setOnboardingCompleted } from '../utils/storage';
+import { getOnboardingState, setOnboardingCompleted, getAIConfig } from '../utils/storage';
 import { Plus, Target, Clock, Flame, TrendingUp, CheckCircle, PlayCircle, Trash2, Settings, BarChart3 } from 'lucide-react';
 
 export function HomePage() {
@@ -18,16 +18,19 @@ export function HomePage() {
   
   useEffect(() => {
     loadData();
-    
+  }, [loadData]);
+  
+  useEffect(() => {
     const onboarding = getOnboardingState();
-    const hasConfiguredAPIKey = aiConfig.apiKey || 
-      (aiConfig.providerConfigs && 
-        Object.values(aiConfig.providerConfigs).some(pc => pc.apiKey));
+    const config = getAIConfig();
+    const hasConfiguredAPIKey = config.apiKey || 
+      (config.providerConfigs && 
+        Object.values(config.providerConfigs).some(pc => pc.apiKey));
     
     if (!onboarding.completed && !hasConfiguredAPIKey) {
       setShowOnboarding(true);
     }
-  }, [loadData, aiConfig]);
+  }, []);
   
   const handleCloseOnboarding = () => {
     setOnboardingCompleted();
