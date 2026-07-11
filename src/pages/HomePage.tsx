@@ -4,7 +4,7 @@ import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { ProgressBar } from '../components/common/ProgressBar';
 import { StatCard } from '../components/common/StatCard';
-import { Plus, Target, Clock, Flame, TrendingUp, CheckCircle, PlayCircle, Trash2, Settings } from 'lucide-react';
+import { Plus, Target, Clock, Flame, TrendingUp, CheckCircle, PlayCircle, Trash2, Settings, BarChart3 } from 'lucide-react';
 
 export function HomePage() {
   const { goals, removeGoal, getGoalProgress, getTotalPomodoroCount, focusRecords, loadData } = useAppStore();
@@ -31,8 +31,13 @@ export function HomePage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Link to="/stats">
+                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="统计概览">
+                  <BarChart3 className="text-gray-600" size={20} />
+                </button>
+              </Link>
               <Link to="/settings">
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="设置">
                   <Settings className="text-gray-600" size={20} />
                 </button>
               </Link>
@@ -70,6 +75,12 @@ export function HomePage() {
               label="已完成目标"
               value={completedGoals.length}
             />
+          </div>
+          <div className="flex justify-end mt-3">
+            <Link to="/stats" className="text-sm text-orange-500 hover:text-orange-600 flex items-center gap-1">
+              <TrendingUp size={14} />
+              查看详细统计
+            </Link>
           </div>
         </section>
 
