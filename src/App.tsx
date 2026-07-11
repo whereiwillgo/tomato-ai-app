@@ -16,7 +16,7 @@ function AppContent() {
   }, [loadData]);
 
   return (
-    <Router>
+    <Router basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/create" element={<CreateGoalPage />} />
