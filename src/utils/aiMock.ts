@@ -499,6 +499,7 @@ export function generateAIResponseWithActions(userMessage: string, context: Chat
     const patterns = [
       /(?:删除|移除|去掉|删掉|不要)(?:事项)?[「""''"]?(.+?)[「""''"]?$/,
       /(.+?)(?:的事项)?(?:事项)?(?:删除|移除|去掉|删掉|不要)$/,
+      /(?:把|将)(?:事项)?[「""''"]?(.+?)[「""''"]?(?:删除|移除|去掉|删掉|不要)$/,
     ];
     
     let itemTitle = '';
@@ -576,6 +577,7 @@ export function generateAIResponseWithActions(userMessage: string, context: Chat
     const patterns = [
       /(?:修改|改成|变更|调整)(?:事项)?[「""''"]?(.+?)[「""''"]?(?:(?:为|成|改为))[「""''"]?(.+?)[「""''"]?$/,
       /(.+?)(?:的事项)?(?:修改|改成|变更|调整)(?:为|成|改为)(.+?)$/,
+      /(?:把|将)(?:事项)?[「""''"]?(.+?)[「""''"]?(?:改成|修改为|改为|更名为|改成|调整为)[「""''"]?(.+?)[「""''"]?$/,
     ];
     
     let originalTitle = '';
