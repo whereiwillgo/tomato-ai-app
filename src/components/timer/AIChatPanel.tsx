@@ -9,6 +9,7 @@ interface AIChatPanelProps {
   onSend: (message: string) => void;
   onAction?: (action: ChatAction) => void;
   isLoading?: boolean;
+  modelName?: string;
 }
 
 const QUICK_ACTIONS = [
@@ -27,7 +28,7 @@ const ACTION_ICONS: Record<string, any> = {
   custom: Sparkles,
 };
 
-export function AIChatPanel({ isOpen, onClose, messages, onSend, onAction, isLoading = false }: AIChatPanelProps) {
+export function AIChatPanel({ isOpen, onClose, messages, onSend, onAction, isLoading = false, modelName = 'AI' }: AIChatPanelProps) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -71,7 +72,7 @@ export function AIChatPanel({ isOpen, onClose, messages, onSend, onAction, isLoa
               AI 专注助手
               <span className="flex items-center gap-1 text-xs text-orange-500 bg-orange-100 px-2 py-0.5 rounded-full">
                 <Sparkles size={10} />
-                在线
+                {modelName}
               </span>
             </h3>
             <p className="text-xs text-gray-500">随时反馈状态，获取建议</p>

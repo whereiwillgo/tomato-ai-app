@@ -11,7 +11,7 @@ import { Button } from '../components/common/Button';
 import { ArrowLeft, Target, Coffee, Flame, CheckCircle, MessageCircle, Bot, Clock, AlertTriangle } from 'lucide-react';
 import { FocusRecord, ItemCompletion, ChatMessage, ChatAction, PomodoroItem, AIConfig } from '../types';
 import { generatePomodoroItems, generateAIResponseWithActions, getInitialChatMessage, ChatContext } from '../utils/aiMock';
-import { generateChatResponse, getInitialAIMessage, generatePomodoroItemsForTask } from '../services/aiService';
+import { generateChatResponse, getInitialAIMessage, generatePomodoroItemsForTask, getProviderConfig } from '../services/aiService';
 
 const WORK_TIME = 25 * 60;
 const BREAK_TIME = 5 * 60;
@@ -622,6 +622,7 @@ export function TimerPage() {
         onSend={handleSendChatMessage}
         onAction={handleChatAction}
         isLoading={isAILoading}
+        modelName={getProviderConfig(aiConfig.provider).displayName}
       />
     </div>
   );
