@@ -165,17 +165,41 @@ export async function generateChatResponse(
     return mockGenerateChat(userMessage, context);
   }
 
+  const itemsList = context.pomodoroItems.length > 0
+    ? context.pomodoroItems.map((i, idx) => `${idx + 1}. [ID:${i.id}] ${i.title} (状态:${i.status})`).join('\n')
+    : '（暂无事项）';
+
   const systemPrompt = `你是一个专业的AI专注助手，帮助用户管理番茄工作法的任务和进度。你的性格温暖、鼓励人心、专业。
 
 当前上下文：
 - 当前任务：${context.task?.title || '无'}
 - 任务内容：${context.task?.content || '无'}
-- 番茄钟事项：${context.pomodoroItems.map(i => `${i.title} (${i.status})`).join('、') || '无'}
+- 番茄钟事项列表：
+${itemsList}
 - 已完成番茄数：${context.completedPomodoros}
 - 计时器状态：${context.timerStatus}
 
-请用简洁、温暖的语气回复用户。如果用户要求添加事项，先确认事项内容再让用户确认。
-回复时请直接给出内容，不需要JSON格式。`;
+你需要理解用户消息的意图，并以JSON格式回复。JSON格式如下：
+\`\`\`json
+{
+  "content": "回复给用户的文字内容",
+  "actions": []
+}
+\`\`\`
+
+actions数组中每个元素的格式：
+- 添加事项：{"label":"确认添加","type":"primary","action":"add_item","payload":{"title":"事项标题","successCriteria":["标准1","标准2","标准3"]}}
+- 删除事项：{"label":"确认删除","type":"danger","action":"remove_item","payload":{"itemId":"事项ID"}}
+- 修改事项：{"label":"确认修改","type":"primary","action":"update_item","payload":{"itemId":"事项ID","updates":{"title":"新标题"}}}
+- 取消操作：{"label":"取消","type":"secondary","action":"custom","payload":{"type":"cancel"}}
+
+规则：
+1. 当用户想添加事项时，从用户消息中提取事项标题，生成达标标准，在actions中返回"确认添加"和"取消"两个按钮
+2. 当用户想删除事项时，根据事项标题匹配上方列表中的事项ID，在actions中返回"确认删除"和"取消"两个按钮。如果无法确定删除哪个，在content中列出可选事项让用户选择，actions为空数组
+3. 当用户想修改事项时，根据事项标题匹配ID，提取新标题，在actions中返回"确认修改"和"取消"两个按钮。如果无法确定修改哪个或改成什么，在content中追问，actions为空数组
+4. 其他情况（进度查询、状态反馈、困难求助等），直接在content中回复，actions为空数组
+5. content用简洁温暖的语气，不需要JSON格式的说明文字
+6. 必须返回合法JSON`;
 
   try {
     const content = await callChatAPI(config, [
@@ -183,117 +207,19 @@ export async function generateChatResponse(
       { role: 'user', content: userMessage },
     ]);
 
-    const addPatterns = ['加一个', '增加', '添加', '新增', '再加', '多一个', '加个'];
-    const isAddRequest = addPatterns.some(p => userMessage.toLowerCase().includes(p));
-    
-    if (isAddRequest) {
-      const itemMatch = userMessage.match(/(?:加一个|增加|添加|新增|再加|多一个|加个)(?:一个)?(?:事项)?[「""''"]?(.+?)[「""''"]?(?:的事项)?(?:事项)?$/);
-      const itemTitle = itemMatch?.[1]?.trim() || '';
-      
-      if (itemTitle && itemTitle !== '事项' && itemTitle !== '的事项') {
-        return {
-          content: content,
-          actions: [
-            {
-              id: `confirm-add-${Date.now()}`,
-              label: '确认添加',
-              type: 'primary' as const,
-              action: 'add_item' as const,
-              payload: {
-                title: itemTitle,
-                successCriteria: ['完成该事项的核心内容', '记录完成情况和成果', '确保质量达到预期'],
-              },
-            },
-            {
-              id: `cancel-add-${Date.now()}`,
-              label: '取消',
-              type: 'secondary' as const,
-              action: 'custom' as const,
-              payload: { type: 'cancel' },
-            },
-          ],
-        };
-      }
+    try {
+      const parsed = extractJsonFromText(content);
+      const actions = (parsed.actions || []).map((a: any) => ({
+        id: `ai-action-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        label: a.label,
+        type: a.type,
+        action: a.action,
+        payload: a.payload,
+      }));
+      return { content: parsed.content || content, actions };
+    } catch {
+      return { content };
     }
-
-    const removePatterns = ['删除', '移除', '去掉', '删掉', '不要'];
-    const isRemoveRequest = removePatterns.some(p => userMessage.toLowerCase().includes(p));
-    
-    if (isRemoveRequest) {
-      const allItems = [...context.pomodoroItems];
-      
-      if (allItems.length > 0) {
-        const removeMatch = userMessage.match(/(?:删除|移除|去掉|删掉|不要)(?:事项)?[「""''"]?(.+?)[「""''"]?$/);
-        const itemTitle = removeMatch?.[1]?.trim() || '';
-        
-        if (itemTitle && itemTitle !== '事项') {
-          const matchedItem = allItems.find(i => i.title.includes(itemTitle) || itemTitle.includes(i.title));
-          if (matchedItem) {
-            return {
-              content: content,
-              actions: [
-                {
-                  id: `confirm-remove-${Date.now()}`,
-                  label: '确认删除',
-                  type: 'danger' as const,
-                  action: 'remove_item' as const,
-                  payload: { itemId: matchedItem.id },
-                },
-                {
-                  id: `cancel-remove-${Date.now()}`,
-                  label: '取消',
-                  type: 'secondary' as const,
-                  action: 'custom' as const,
-                  payload: { type: 'cancel' },
-                },
-              ],
-            };
-          }
-        }
-      }
-    }
-
-    const updatePatterns = ['修改', '改成', '变更', '调整'];
-    const isUpdateRequest = updatePatterns.some(p => userMessage.toLowerCase().includes(p));
-    
-    if (isUpdateRequest) {
-      const allItems = [...context.pomodoroItems];
-      
-      if (allItems.length > 0) {
-        const updateMatch = userMessage.match(/(?:修改|改成|变更|调整)(?:事项)?[「""''"]?(.+?)[「""''"]?(?:(?:为|成|改为))[「""''"]?(.+?)[「""''"]?$/);
-        if (updateMatch && updateMatch[1] && updateMatch[2]) {
-          const originalTitle = updateMatch[1].trim();
-          const newTitle = updateMatch[2].trim();
-          
-          if (originalTitle && originalTitle !== '事项' && newTitle) {
-            const matchedItem = allItems.find(i => i.title.includes(originalTitle) || originalTitle.includes(i.title));
-            if (matchedItem) {
-              return {
-                content: content,
-                actions: [
-                  {
-                    id: `confirm-update-${Date.now()}`,
-                    label: '确认修改',
-                    type: 'primary' as const,
-                    action: 'update_item' as const,
-                    payload: { itemId: matchedItem.id, updates: { title: newTitle } },
-                  },
-                  {
-                    id: `cancel-update-${Date.now()}`,
-                    label: '取消',
-                    type: 'secondary' as const,
-                    action: 'custom' as const,
-                    payload: { type: 'cancel' },
-                  },
-                ],
-              };
-            }
-          }
-        }
-      }
-    }
-
-    return { content };
   } catch (error) {
     console.error('AI API调用失败，使用本地模拟:', error);
     return mockGenerateChat(userMessage, context);
